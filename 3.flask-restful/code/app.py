@@ -1,5 +1,5 @@
 from flask import Flask, request
-from flask_restful import Resource, Api
+from flask_restful import Resource, Api, reqparse
 from flask_jwt import JWT, jwt_required
 from security import authenticate, identity
 
@@ -15,6 +15,13 @@ jwt = JWT(app, authenticate, identity)
 
 
 class Item(Resource):
+    parser = reqparse.RequestParser()  # create new parser for parse the req
+    parser.add_argument("price",  # validation req.body
+                        type=float,
+                        required=True,
+                        help="This field is required")
+    # data = request.get_json()
+
     @classmethod
     def _get_item_by_name(cls, name):
         return next(filter(lambda i: i["name"] == name, items), None)
@@ -28,14 +35,17 @@ class Item(Resource):
         item = Item._get_item_by_name(name)
         return {"item": item}, 200 if item else 404
 
-    @jwt_required()
+    # @jwt_required()
     def post(self, name):
         if Item._get_item_by_name(name):
             return {"error": "Item exist"}, 400
         # force=True means you don't need the application/json header
         # data = request.get_json(force=True)
         # data = request.get_json(silence=True)  # will not raise an error
-        data = request.get_json()
+
+        # data = request.get_json()
+        data = Item.parser.parse_args()  # get the formatted req.body
+        # data = request.get_json()
         item = {"name": name, "price": data["price"]}
         items.append(item)
         return item, 201  # don't need to jsonify
@@ -51,7 +61,9 @@ class Item(Resource):
 
     @jwt_required()
     def put(self, name):
-        data = request.get_json()
+        # data = request.get_json()
+        data = Item.parser.parse_args()
+
         item = next(filter(lambda x: x["name"] == name, items), None)
         if item == None:
             items.append({"name": name, "price": data["price"]})
