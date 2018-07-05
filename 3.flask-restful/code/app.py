@@ -1,13 +1,17 @@
 from flask import Flask, request
 from flask_restful import Resource, Api
+from flask_jwt import JWT, jwt_required
+from security import authenticate, identity
 
 app = Flask(__name__)
 api = Api(app)
-
+app.secret_key = "helloworld123"
 # fake db in this section
 items = []
 
-# this is a resouce defination
+# init jwt
+# creates an endpot at POST /auth with username and password
+jwt = JWT(app, authenticate, identity)
 
 
 class Item(Resource):
@@ -15,6 +19,7 @@ class Item(Resource):
     def _get_item_by_name(cls, name):
         return next(filter(lambda i: i["name"] == name, items), None)
 
+    @jwt_required()
     def get(self, name):  # map to get method
         # for item in items:
         #     if item["name"] == name:
