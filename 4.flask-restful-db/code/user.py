@@ -7,7 +7,7 @@ class User():
     client = SqlClient("data.db")
 
     def __init__(self, _id, username, password):
-        self.id = _id  # id is a reserved keyword
+        self.id = _id
         self.username = username
         self.password = password
 
@@ -26,7 +26,10 @@ class User():
     @classmethod
     def find_by_id(cls, _id):
         query = "SELECT * FROM users WHERE id=?"
-        result = User.client.run(query, (_id, ))
+        try:
+            result = User.client.run(query, (_id, ))
+        except:
+            return {"message": "An Error Occured"}, 500
 
         if len(result) > 0:
             row = result[0]  # get the first row
@@ -54,6 +57,9 @@ class UserRegister(Resource):
             return {"message": "Username already exist"}, 400
 
         query = "INSERT INTO USERS VALUES (NULL, ?, ?)"
-        User.client.run(query, (data["username"], data["password"]))
+        try:
+            User.client.run(query, (data["username"], data["password"]))
+        except:
+            return {"message": "An Error Occured"}, 500
 
         return {"message": "User created"}, 201

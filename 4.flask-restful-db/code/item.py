@@ -16,13 +16,17 @@ class Item(Resource):
     def _get_item_by_name(cls, name):
         query = "SELECT * FROM items WHERE NAME=?"
         result = cls.client.run(query, (name, ))
+        print(result)
         if len(result) > 0:
             row = result[0]
             return {"item": {"name": row[0], "price": row[1]}}
         return None
 
     def get(self, name):
-        item = self._get_item_by_name(name)
+        try:
+            item = self._get_item_by_name(name)
+        except:
+            return {"message": "An Error Occured"}, 500
 
         if item:
             return item, 200
@@ -30,16 +34,22 @@ class Item(Resource):
 
     @jwt_required()
     def post(self, name):
-        if Item._get_item_by_name(name):
-            return {"error": "Item exist"}, 400
+        try:
+            if Item._get_item_by_name(name):
+                return {"error": "Item exist"}, 400
+        except:
+            return {"message": "An Error Occured"}, 500
 
         data = Item.parser.parse_args()  # get the formatted req.body
         item = {"name": name, "price": data["price"]}
 
         query = "INSERT INTO items VALUES(?, ?)"
-        Item.client.run(query, (item["name"], item["price"]))
+        try:
+            Item.client.run(query, (item["name"], item["price"]))
 
-        return item, 201  # don't need to jsonify
+            return item, 201
+        except:
+            return {"message": "An Error Occured"}, 500
 
     @jwt_required()
     def delete(self, name):
@@ -47,8 +57,10 @@ class Item(Resource):
             return {"error": "name not found"}, 400
 
         query = "DELETE FROM items WHERE name=?"
-
-        Item.client.run(query, (name, ))
+        try:
+            Item.client.run(query, (name, ))
+        except:
+            return {"message": "An Error Occured"}, 500
 
         return {"message": "Item deleted"}, 201
 
@@ -56,17 +68,27 @@ class Item(Resource):
     def put(self, name):
         data = Item.parser.parse_args()
         price = data["price"]
-        print("price:: ", price)
-        if not Item._get_item_by_name(name):
-            return {"error": "name not found"}, 400
+        is_item_found = False
+        try:
+            if Item._get_item_by_name(name):
+                is_item_found = True
+        except:
+            return {"message": "An Error Occured"}, 500
 
-        query = "UPDATE items SET price=? WHERE name=?"
-        Item.client.run(query, (price, name))
+        try:
+            if is_item_found:
+                query = "UPDATE items SET price=? WHERE name=?"
+                Item.client.run(query, (price, name))
+            else:
+                query = "INSERT INTO items VALUES(?, ?)"
+                Item.client.run(query, (name, price))
 
-        return {"item": {
-            "name": name,
-            "price": price
-        }}, 201
+            return {"item": {
+                "name": name,
+                "price": price
+            }}, 201
+        except:
+            return {"message": "An Error Occured"}, 500
 
 
 class ItemList(Resource):
