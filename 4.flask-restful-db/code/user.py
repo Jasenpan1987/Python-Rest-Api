@@ -1,8 +1,11 @@
 import sqlite3
+from sql_client import SqlClient
 from flask_restful import Resource, reqparse
 
 
 class User():
+    client = SqlClient("data.db")
+
     def __init__(self, _id, username, password):
         self.id = _id  # id is a reserved keyword
         self.username = username
@@ -10,32 +13,26 @@ class User():
 
     @classmethod
     def find_by_username(cls, username):
-        connection = sqlite3.connect("data.db")
-        cursor = connection.cursor()
         query = "SELECT * FROM users WHERE username=?"
-        # the parameter for execute MUST be a tuple
-        result = cursor.execute(query, (username, ))
-        row = result.fetchone()  # get the first row
-        if row:
+        result = User.client.run(query, (username, ))
+
+        if len(result) > 0:
+            row = result[0]  # get the first row
             user = cls(*row)  # == cls(row[0], row[1], row[2])
         else:
             user = None
-        connection.close()
         return user
 
     @classmethod
     def find_by_id(cls, _id):
-        connection = sqlite3.connect("data.db")
-        cursor = connection.cursor()
         query = "SELECT * FROM users WHERE id=?"
-        # the parameter for execute MUST be a tuple
-        result = cursor.execute(query, (_id, ))
-        row = result.fetchone()  # get the first row
-        if row:
+        result = User.client.run(query, (_id, ))
+
+        if len(result) > 0:
+            row = result[0]  # get the first row
             user = cls(*row)  # == cls(row[0], row[1], row[2])
         else:
             user = None
-        connection.close()
         return user
 
 
@@ -56,13 +53,7 @@ class UserRegister(Resource):
         if User.find_by_username(data["username"]):  # check user name
             return {"message": "Username already exist"}, 400
 
-        connection = sqlite3.connect("data.db")
-        cursor = connection.cursor()
-
         query = "INSERT INTO USERS VALUES (NULL, ?, ?)"
-        cursor.execute(query, (data["username"], data["password"]))
-
-        connection.commit()
-        connection.close()
+        User.client.run(query, (data["username"], data["password"]))
 
         return {"message": "User created"}, 201
