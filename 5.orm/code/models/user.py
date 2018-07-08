@@ -14,8 +14,7 @@ class UserModel(db.Model):
 
     TABLE_NAME = 'users'
 
-    def __init__(self, _id, username, password):
-        self.id = _id
+    def __init__(self, username, password):
         self.username = username
         self.password = password
         # you can have other properties here, but they
@@ -23,33 +22,16 @@ class UserModel(db.Model):
 
     @classmethod
     def find_by_username(cls, username):
-        connection = sqlite3.connect('data.db')
-        cursor = connection.cursor()
-
-        query = "SELECT * FROM {table} WHERE username=?".format(
-            table=cls.TABLE_NAME)
-        result = cursor.execute(query, (username, ))
-        row = result.fetchone()
-        if row:
-            user = cls(*row)
-        else:
-            user = None
-
-        connection.close()
-        return user
+        return cls.query.filter_by(username=username).first()
 
     @classmethod
     def find_by_id(cls, _id):
-        connection = sqlite3.connect('data.db')
-        cursor = connection.cursor()
+        return cls.query.filter_by(id=_id).first()
 
-        query = "SELECT * FROM {table} WHERE id=?".format(table=cls.TABLE_NAME)
-        result = cursor.execute(query, (_id, ))
-        row = result.fetchone()
-        if row:
-            user = cls(*row)
-        else:
-            user = None
+    def save_to_db(self):
+        db.session.add(self)
+        db.session.commit()
 
-        connection.close()
-        return user
+    def delete_from_db(self):
+        db.session.delete(self)
+        db.session.commit()
